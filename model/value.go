@@ -239,7 +239,7 @@ func (ss SampleStream) String() string {
 type Value interface {
 	Type() ValueType
 	String() string
-	Map()	interface{}
+	Csv()	interface{}
 }
 
 func (Matrix) Type() ValueType  { return ValMatrix }
@@ -309,7 +309,7 @@ type Scalar struct {
 func (s Scalar) String() string {
 	return fmt.Sprintf("scalar: %v @[%v]", s.Value, s.Timestamp)
 }
-func (s Scalar) Map() interface{}{
+func (s Scalar) Csv() interface{}{
 	return nil
 }
 
@@ -399,7 +399,7 @@ func (vec Vector) Equal(o Vector) bool {
 	}
 	return true
 }
-func (vec Vector) Map() interface{}{
+func (vec Vector) Csv() interface{}{
 	return nil
 }
 
@@ -423,7 +423,7 @@ func (mat Matrix) String() string {
 	return strings.Join(strs, "\n")
 }
 
-func (m Matrix) Map() interface{}{
+func (m Matrix) Csv() interface{}{
 	mCp := make(Matrix, len(m))
 	copy(mCp, m)
 	sort.Sort(mCp)
