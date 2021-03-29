@@ -20,6 +20,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"os"
+	"encoding/csv"
 )
 
 var (
@@ -237,6 +239,7 @@ func (ss SampleStream) String() string {
 type Value interface {
 	Type() ValueType
 	String() string
+	Map()	interface{}
 }
 
 func (Matrix) Type() ValueType  { return ValMatrix }
@@ -305,6 +308,9 @@ type Scalar struct {
 
 func (s Scalar) String() string {
 	return fmt.Sprintf("scalar: %v @[%v]", s.Value, s.Timestamp)
+}
+func (s Scalar) Map() interface{}{
+	return nil
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -393,6 +399,9 @@ func (vec Vector) Equal(o Vector) bool {
 	}
 	return true
 }
+func (vec Vector) Map() interface{}{
+	return nil
+}
 
 // Matrix is a list of time series.
 type Matrix []*SampleStream
@@ -411,6 +420,47 @@ func (mat Matrix) String() string {
 	for i, ss := range matCp {
 		strs[i] = ss.String()
 	}
-
 	return strings.Join(strs, "\n")
+}
+
+func (m Matrix) Map() interface{}{
+	mCp := make(Matrix, len(m))
+	copy(mCp, m)
+	sort.Sort(mCp)
+	metricName := mCp[0].Metric[MetricNameLabel]
+	fileName := "./"+metricName+".csv"
+	output, err := os.Create(string(fileName))
+
+	if err != nil{
+		panic(err)
+	}
+	defer output.Close()
+	writer := csv.NewWriter(output)
+	keys := []string{}
+	for i, cur := range(mCp){
+		h := cur.Metric
+		if i == 0 {
+			for k:= range(h){
+				keys = append(keys, string(k))
+			}
+			keys = append(keys, "value", "timestamp")
+			writer.Write(keys)
+		}
+		for _, val := range(cur.Values){
+			row := []string{}
+			for _,k:=range(keys) {
+				if k == "value"{
+					row = append(row, fmt.Sprintf("%f",float64(val.Value)))
+				}
+				if k == "timestamp"{
+					row = append(row, val.Timestamp.String())
+				}
+				row = append(row, string(h[LabelName(k)]))
+			}
+			fmt.Println(row)
+			writer.Write(row)
+		}
+	}
+	writer.Flush()
+	return nil
 }
